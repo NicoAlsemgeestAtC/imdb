@@ -1,6 +1,7 @@
 // src/pages/DiscoverMoviesPage.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { NavLink, useParams, useHistory } from "react-router-dom";
 
 type SearchState =
   | { status: "idle" }
@@ -28,10 +29,19 @@ export default function DiscoverMoviesPage() {
   const [searchState, setSearchState] = useState<SearchState>({
     status: "idle",
   });
+  const routeParams = useParams<{ search: string }>();
+  const history = useHistory();
 
-  const search = async () => {
+  useEffect(() => {
+    if (routeParams.search && routeParams.search.length > 0) {
+      setSearchText(routeParams.search);
+      search(routeParams.search);
+    }
+  }, [routeParams.search]);
+
+  const search = async (searchString: string) => {
     setSearchState({ status: "loading" });
-    const queryParam = encodeURIComponent(searchText);
+    const queryParam = encodeURIComponent(searchString);
     const data = await axios.get<ApiResult>(
       `https://omdbapi.com/?apikey=7b03239a&s=${queryParam}`
     );
@@ -42,6 +52,11 @@ export default function DiscoverMoviesPage() {
     }
   };
 
+  const navigateToSearch = () => {
+    const routeParam = encodeURIComponent(searchText);
+    history.push(`/discover/${routeParam}`);
+  };
+
   return (
     <div>
       <h1>Discover some movies!</h1>
@@ -50,7 +65,7 @@ export default function DiscoverMoviesPage() {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
-        <button onClick={search}>Search</button>
+        <button onClick={() => navigateToSearch()}>Search</button>
         {searchState.status === "loading" && <p>Searching...</p>}
         {searchState.status === "error" && <p>{searchState.error}</p>}
         {searchState.status === "success" && (
@@ -58,9 +73,9 @@ export default function DiscoverMoviesPage() {
             <h2>Search results</h2>
             {searchState.data.Search.slice(0, 10).map((movie) => {
               return (
-                <div key={movie.imdbID}>
-                  {movie.Title} ({movie.Year})
-                </div>
+                <NavLink key={movie.imdbID} to={`/Movie/${movie.imdbID}`}>
+                  <img alt={movie.Title} src={movie.Poster}></img>
+                </NavLink>
               );
             })}
           </div>
